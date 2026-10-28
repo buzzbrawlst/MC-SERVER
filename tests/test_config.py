@@ -47,3 +47,12 @@ def test_invalid_action_is_rejected(monkeypatch):
     with TestClient(manager.app) as client:
         response = client.post("/api/servers/survival/action", json={"action": "explode"})
         assert response.status_code == 400
+
+
+def test_manager_rejects_runtime_path_escape():
+    import pytest
+    from fastapi import HTTPException
+
+    with pytest.raises(HTTPException) as error:
+        manager.directory({"directory": "../outside"})
+    assert error.value.status_code == 400

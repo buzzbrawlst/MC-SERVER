@@ -14,7 +14,7 @@
 2. In the dashboard, start Lobby, then Survival, then Velocity. Wait for each backend's log to report startup complete before starting Velocity.
 3. Join from Minecraft Java Edition using `localhost:25565`.
 4. If a backend refuses a connection, inspect its `manager-console.log` and confirm the forwarding secret in `runtime\proxy\forwarding.secret` matches each backend's `config\paper-global.yml`.
-5. For Bedrock testing, start Velocity once so Geyser creates `runtime\proxy\plugins\Geyser-Velocity\config.yml`, stop Velocity, set Geyser's `remote.auth-type` to `floodgate`, and confirm the Bedrock listener uses port 19132. Restart Velocity and connect from Bedrock to `127.0.0.1:19132`. Do not port-forward ports while testing locally.
+5. For Bedrock testing, start Velocity once so Geyser creates `runtime\proxy\plugins\Geyser-Velocity\config.yml`, then stop Velocity. In that file, set `remote.auth-type: floodgate` and configure `bedrock` with `clone-remote-port: false`, `port: 19132`, and `transport: nethernet`. Restart Velocity and connect from Bedrock to `127.0.0.1:19132`. Keep it local; do not port-forward these ports.
 6. Use `Prepare-TestNetwork.ps1 -EnableAllModes` only when the PC has enough free RAM; this enables all configured instances in the ignored local config.
 
 ## Current test scope
