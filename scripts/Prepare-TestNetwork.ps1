@@ -5,6 +5,11 @@ if (-not (Test-Path (Join-Path $repo "config\network.example.json"))) { throw "R
 $runtime = Join-Path $repo "runtime"
 $headers = @{ "User-Agent" = "MC-SERVER-Local-Test-Setup/1.0" }
 
+function Write-Utf8NoBom([string]$Path, [string]$Content) {
+    $encoding = New-Object System.Text.UTF8Encoding -ArgumentList $false
+    [System.IO.File]::WriteAllText($Path, $Content, $encoding)
+}
+
 function Get-LatestPaperJar([string]$Project) {
     $projectInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project" -Headers $headers
     $version = $projectInfo.versions[-1]
@@ -73,7 +78,7 @@ bedwars = "127.0.0.1:25570"
 duels = "127.0.0.1:25571"
 try = ["lobby"]
 "@
-Set-Content -Path (Join-Path $proxyDir "velocity.toml") -Value $velocityConfig -Encoding utf8
+Write-Utf8NoBom -Path (Join-Path $proxyDir "velocity.toml") -Content $velocityConfig
 
 foreach ($server in $config.servers) {
     if ($server.kind -ne "paper") { continue }
@@ -90,7 +95,7 @@ enforce-secure-profile=true
 enable-rcon=false
 enable-query=false
 "@
-    Set-Content -Path (Join-Path $folder "server.properties") -Value $properties -Encoding utf8
+    Write-Utf8NoBom -Path (Join-Path $folder "server.properties") -Content $properties
     $configFolder = Join-Path $folder "config"
     New-Item -ItemType Directory -Force -Path $configFolder | Out-Null
     $globalConfig = @"
@@ -100,7 +105,7 @@ proxies:
     online-mode: true
     secret: "$secret"
 "@
-    Set-Content -Path (Join-Path $configFolder "paper-global.yml") -Value $globalConfig -Encoding utf8
+    Write-Utf8NoBom -Path (Join-Path $configFolder "paper-global.yml") -Content $globalConfig
     if (-not (Test-Path (Join-Path $folder "eula.txt"))) {
         Set-Content -Path (Join-Path $folder "eula.txt") -Value "eula=false" -Encoding ascii
     }
@@ -128,7 +133,8 @@ if ($gradle) {
     Write-Host "Gradle not installed; skipping custom plugin build. Install Gradle and rerun to include /network and /spawn." -ForegroundColor Yellow
 }
 
-$config | ConvertTo-Json -Depth 20 | Set-Content -Path $configPath -Encoding utf8
+$jsonConfig = $config | ConvertTo-Json -Depth 20
+Write-Utf8NoBom -Path $configPath -Content $jsonConfig
 Write-Host ""
 Write-Host "Prepared server jars and local-only forwarding configuration." -ForegroundColor Green
 Write-Host "Review each runtime\<mode>\eula.txt and change eula=false to eula=true ONLY if you agree to the Minecraft EULA." -ForegroundColor Yellow
