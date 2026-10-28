@@ -133,6 +133,13 @@ proxies:
         Set-Content -Path (Join-Path $folder "eula.txt") -Value "eula=false" -Encoding ascii
     }
     $server.enabled = [bool]($EnableAllModes -or $server.id -in @("proxy","lobby","survival"))
+    if (-not $EnableAllModes) {
+        switch ($server.id) {
+            "proxy" { $server.memory_min = "256M"; $server.memory_max = "512M" }
+            "lobby" { $server.memory_min = "512M"; $server.memory_max = "1G" }
+            "survival" { $server.memory_min = "1G"; $server.memory_max = "2G" }
+        }
+    }
 }
 
 # Build and install the starter plugin when Gradle is available; the network still runs without it.

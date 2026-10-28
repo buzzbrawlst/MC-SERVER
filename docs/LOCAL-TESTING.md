@@ -4,7 +4,7 @@
 - Use Windows PowerShell from the repository root.
 - Install a Java runtime supported by the current stable Paper build, Python 3.11+, and Git.
 - Run `scripts/Check-Prerequisites.ps1`.
-- Run `powershell -ExecutionPolicy Bypass -File .\scripts\Prepare-TestNetwork.ps1`. It downloads latest stable Paper and Velocity builds from PaperMC's official API.
+- Run `powershell -ExecutionPolicy Bypass -File .\scripts\Prepare-TestNetwork.ps1`. It downloads stable Paper and recommended Velocity builds from PaperMC Fill v3 and verifies their SHA-256 checksums.
 - The script generates a strong forwarding secret, configures Paper backends to bind to `127.0.0.1`, and downloads Geyser-Velocity and Floodgate from the official GeyserMC download API. It does not expose backend ports or accept any EULA.
 - Read each server's `runtime\<mode>\eula.txt`. Change `eula=false` to `eula=true` only if you agree to the Minecraft EULA.
 - If you want the starter plugin's `/network` and `/spawn` commands, install Gradle and rerun preparation so it builds and copies the plugin.
@@ -18,7 +18,7 @@
 6. Use `Prepare-TestNetwork.ps1 -EnableAllModes` only when the PC has enough free RAM; this enables all configured instances in the ignored local config.
 
 ## Current test scope
-This is a local smoke-test network. Java proxy/backend startup can be tested first; Bedrock requires the one-time Geyser auth setting above. Production moderation/economy/claims, full Lifesteal/Skyblock/BedWars/Duels gameplay, backups, and production load/security tests are not implemented yet. Do not expose it publicly.
+This is a local smoke-test network. By default, only Proxy, Lobby and Survival are enabled with conservative memory caps; other configured modes stay disabled. Java proxy/backend startup can be tested first; Bedrock requires the one-time Geyser auth setting above. Production moderation/economy/claims, full Lifesteal/Skyblock/BedWars/Duels gameplay, backups, and production load/security tests are not implemented yet. Do not expose it publicly.
 
 ## Troubleshooting
 - Missing JAR: rerun Prepare-TestNetwork.ps1.

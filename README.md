@@ -10,7 +10,7 @@ Windows-first local Minecraft network starter for Java Edition. Velocity is the 
 5. Run `powershell -ExecutionPolicy Bypass -File .\scripts\Start-Manager.ps1`.
 6. In the dashboard, start Lobby and Survival, wait until their logs say startup is complete, then start Velocity. Join Java Edition at `localhost:25565`.
 
-The preparation script downloads current stable Paper and Velocity builds from PaperMC's official API, downloads Geyser-Velocity and Floodgate from GeyserMC's official download API, generates a random forwarding secret, and binds Paper backends to loopback. It does not accept EULAs. If Gradle is installed, it also builds and installs the starter custom plugin. Keep the manager bound to `127.0.0.1`; it has no authentication.
+The preparation script downloads stable Paper and recommended Velocity builds through PaperMC Fill v3 and verifies SHA-256 checksums. It also downloads Geyser-Velocity and Floodgate from GeyserMC's official download API, generates a random forwarding secret, and binds Paper backends to loopback. The default local test profile uses conservative memory caps and enables only Proxy, Lobby and Survival. It does not accept EULAs. If Gradle is installed, it also builds and installs the starter custom plugin. Keep the manager bound to `127.0.0.1`; it has no authentication.
 
 ## Development and checks
 - Manager: FastAPI + local web dashboard.
