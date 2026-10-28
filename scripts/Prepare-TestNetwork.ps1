@@ -35,7 +35,11 @@ Invoke-WebRequest -Uri $velocity.Url -OutFile $velocityDownload -Headers $header
 $proxyDir = Join-Path $runtime "proxy"
 New-Item -ItemType Directory -Force -Path $proxyDir | Out-Null
 Copy-Item $velocityDownload (Join-Path $proxyDir "velocity.jar") -Force
-New-Item -ItemType Directory -Force -Path (Join-Path $proxyDir "plugins") | Out-Null
+$proxyPlugins = Join-Path $proxyDir "plugins"
+New-Item -ItemType Directory -Force -Path $proxyPlugins | Out-Null
+# Official GeyserMC downloads: Bedrock-to-Java bridge plus Floodgate authentication.
+Invoke-WebRequest -Uri "https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/velocity" -OutFile (Join-Path $proxyPlugins "Geyser-Velocity.jar") -Headers $headers
+Invoke-WebRequest -Uri "https://download.geysermc.org/v2/projects/floodgate/versions/latest/builds/latest/downloads/velocity" -OutFile (Join-Path $proxyPlugins "floodgate-velocity.jar") -Headers $headers
 
 $configPath = Join-Path $repo "config\network.json"
 if (-not (Test-Path $configPath)) { Copy-Item (Join-Path $repo "config\network.example.json") $configPath }
