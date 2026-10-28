@@ -23,7 +23,7 @@ function Wait-ForServerReady([string]$Id, [string]$Name, [int]$TimeoutSeconds = 
         Start-Sleep -Seconds 2
         if (Test-Path $logPath) {
             $tail = Get-Content $logPath -Tail 100 -ErrorAction SilentlyContinue
-            $joined = $tail -join "\`n"
+            $joined = $tail -join "`n"
             if (($Id -eq "proxy" -and ($joined -match "Done \(" -or $joined -match "Listening on")) -or ($Id -ne "proxy" -and $joined -match "Done \(")) {
                 Write-Host "$Name is ready." -ForegroundColor Green
                 return
@@ -36,7 +36,7 @@ function Wait-ForServerReady([string]$Id, [string]$Name, [int]$TimeoutSeconds = 
             $states = (Invoke-RestMethod -Uri "$managerUrl/api/servers" -TimeoutSec 2).servers
             $state = $states | Where-Object { $_.id -eq $Id } | Select-Object -First 1
             if (-not $state -or -not $state.running) {
-                if (Test-Path $logPath) { Write-Host "Latest log for $Name:" -ForegroundColor Yellow; Get-Content $logPath -Tail 20 }
+                if (Test-Path $logPath) { Write-Host "Latest log for ${Name}:" -ForegroundColor Yellow; Get-Content $logPath -Tail 20 }
                 Stop-WithMessage "$Name stopped before reporting ready. Check its log: $logPath"
             }
         } catch { }
