@@ -76,11 +76,24 @@ if ($notAccepted.Count -gt 0) {
 if (-not (Test-Manager)) {
     Write-Host "Starting local management service..." -ForegroundColor Cyan
     $managerScript = Join-Path $repo "scripts\Start-Manager.ps1"
+    $managerStdout = Join-Path $repo "manager-startup.log"
+    $managerStderr = Join-Path $repo "manager-startup-error.log"
+    Remove-Item $managerStdout, $managerStderr -Force -ErrorAction SilentlyContinue
     $managerArgs = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$managerScript`""
-    Start-Process -FilePath "powershell.exe" -ArgumentList $managerArgs -WorkingDirectory $repo -WindowStyle Minimized
+    try {
+        Start-Process -FilePath "powershell.exe" -ArgumentList $managerArgs -WorkingDirectory $repo -WindowStyle Minimized -RedirectStandardOutput $managerStdout -RedirectStandardError $managerStderr
+    } catch {
+        Stop-WithMessage "Could not launch the manager PowerShell process: $($_.Exception.Message)"
+    }
     $deadline = (Get-Date).AddSeconds(90)
     while ((Get-Date) -lt $deadline -and -not (Test-Manager)) { Start-Sleep -Seconds 2 }
-    if (-not (Test-Manager)) { Stop-WithMessage "The manager did not start. Check Python 3.11+, pip, and the minimized manager window." }
+    if (-not (Test-Manager)) {
+        Write-Host ""
+        Write-Host "Manager startup output:" -ForegroundColor Yellow
+        if (Test-Path $managerStdout) { Get-Content $managerStdout -Tail 35 }
+        if (Test-Path $managerStderr) { Get-Content $managerStderr -Tail 35 }
+        Stop-WithMessage "The manager did not start. See manager-startup.log and manager-startup-error.log for the exact cause."
+    }
 } else { Write-Host "Using the already-running local manager." -ForegroundColor Green }
 
 foreach ($id in @("lobby", "survival", "lifesteal", "skyblock", "bedwars", "duels")) {
