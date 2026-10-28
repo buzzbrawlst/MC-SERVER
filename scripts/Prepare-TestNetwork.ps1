@@ -80,6 +80,17 @@ Invoke-WebRequest -Uri "https://download.geysermc.org/v2/projects/floodgate/vers
 $configPath = Join-Path $repo "config\network.json"
 if (-not (Test-Path $configPath)) { Copy-Item (Join-Path $repo "config\network.example.json") $configPath }
 $config = Get-Content $configPath -Raw | ConvertFrom-Json
+
+# The proxy is not a Paper backend, so it must be enabled separately from the Paper loop below.
+$proxyServer = $config.servers | Where-Object { $_.id -eq "proxy" -and $_.kind -eq "velocity" } | Select-Object -First 1
+if ($proxyServer) {
+    $proxyServer.enabled = $true
+    if (-not $EnableAllModes) {
+        $proxyServer.memory_min = "256M"
+        $proxyServer.memory_max = "512M"
+    }
+}
+
 $secretBytes = New-Object byte[] 32
 $rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
 $rng.GetBytes($secretBytes)
