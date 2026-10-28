@@ -1,0 +1,6 @@
+name: MCServerNetworkCore
+version: 0.1.0
+main: dev.mcserver.core.NetworkCorePlugin
+api-version: '1.21'
+description: Foundation for network-specific features.
+author: MC-SERVER

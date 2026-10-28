@@ -1,0 +1,4 @@
+messages:
+  prefix: "&a[MC-SERVER] &7"
+features:
+  welcome-message: false

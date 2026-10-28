@@ -1,0 +1,95 @@
+{
+  "network_name": "MC-SERVER",
+  "manager": {
+    "host": "127.0.0.1",
+    "port": 8765
+  },
+  "runtime_root": "../runtime",
+  "java_command": "java",
+  "servers": [
+    {
+      "id": "proxy",
+      "display_name": "Velocity Proxy",
+      "kind": "velocity",
+      "directory": "../runtime/proxy",
+      "jar": "velocity.jar",
+      "memory_min": "512M",
+      "memory_max": "1G",
+      "port": 25565,
+      "public": true,
+      "enabled": false
+    },
+    {
+      "id": "lobby",
+      "display_name": "Lobby",
+      "kind": "paper",
+      "directory": "../runtime/lobby",
+      "jar": "paper.jar",
+      "memory_min": "512M",
+      "memory_max": "1G",
+      "port": 25566,
+      "public": false,
+      "enabled": false
+    },
+    {
+      "id": "survival",
+      "display_name": "Survival SMP",
+      "kind": "paper",
+      "directory": "../runtime/survival",
+      "jar": "paper.jar",
+      "memory_min": "2G",
+      "memory_max": "4G",
+      "port": 25567,
+      "public": false,
+      "enabled": false
+    },
+    {
+      "id": "lifesteal",
+      "display_name": "Lifesteal",
+      "kind": "paper",
+      "directory": "../runtime/lifesteal",
+      "jar": "paper.jar",
+      "memory_min": "1G",
+      "memory_max": "2G",
+      "port": 25568,
+      "public": false,
+      "enabled": false
+    },
+    {
+      "id": "skyblock",
+      "display_name": "Skyblock",
+      "kind": "paper",
+      "directory": "../runtime/skyblock",
+      "jar": "paper.jar",
+      "memory_min": "1G",
+      "memory_max": "3G",
+      "port": 25569,
+      "public": false,
+      "enabled": false
+    },
+    {
+      "id": "bedwars",
+      "display_name": "BedWars",
+      "kind": "paper",
+      "directory": "../runtime/bedwars",
+      "jar": "paper.jar",
+      "memory_min": "1G",
+      "memory_max": "3G",
+      "port": 25570,
+      "public": false,
+      "enabled": false
+    },
+    {
+      "id": "duels",
+      "display_name": "Duels",
+      "kind": "paper",
+      "directory": "../runtime/duels",
+      "jar": "paper.jar",
+      "memory_min": "512M",
+      "memory_max": "2G",
+      "port": 25571,
+      "public": false,
+      "enabled": false
+    }
+  ]
+}
