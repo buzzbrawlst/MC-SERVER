@@ -15,12 +15,14 @@ function Get-LatestPaperJar([string]$Project) {
     $projectInfo = Invoke-RestMethod -Uri "https://fill.papermc.io/v3/projects/$Project" -Headers $headers
     foreach ($group in $projectInfo.versions.PSObject.Properties) {
         foreach ($version in $group.Value) {
+            $versionInfo = Invoke-RestMethod -Uri "https://fill.papermc.io/v3/projects/$Project/versions/$version" -Headers $headers
+            $javaMinimum = $versionInfo.java.version.minimum
             $builds = Invoke-RestMethod -Uri "https://fill.papermc.io/v3/projects/$Project/versions/$version/builds" -Headers $headers
             $build = $builds | Where-Object { $_.channel -eq $channel } | Select-Object -First 1
             if (-not $build) { continue }
             $download = $build.downloads.PSObject.Properties["server:default"].Value
             if (-not $download -or -not $download.url -or -not $download.checksums.sha256) { continue }
-            return @{ Version = $version; Build = $build.id; Url = $download.url; Sha256 = $download.checksums.sha256 }
+            return @{ Version = $version; Build = $build.id; Url = $download.url; Sha256 = $download.checksums.sha256; JavaMinimum = $javaMinimum }
         }
     }
     throw "No $channel build found for $Project in the PaperMC Fill v3 API."
@@ -34,8 +36,18 @@ New-Item -ItemType Directory -Force -Path $runtime | Out-Null
 
 $paper = Get-LatestPaperJar "paper"
 $velocity = Get-LatestPaperJar "velocity"
-Write-Host "Paper: $($paper.Version) build $($paper.Build)" -ForegroundColor Green
-Write-Host "Velocity: $($velocity.Version) build $($velocity.Build)" -ForegroundColor Green
+Write-Host "Paper: $($paper.Version) build $($paper.Build), Java $($paper.JavaMinimum)+" -ForegroundColor Green
+Write-Host "Velocity: $($velocity.Version) build $($velocity.Build), Java $($velocity.JavaMinimum)+" -ForegroundColor Green
+$javaOutput = (& java -version 2>&1 | Out-String)
+if ($javaOutput -match 'version "(d+)') {
+    $installedJava = [int]$Matches[1]
+    $minimumJava = [Math]::Max([int]$paper.JavaMinimum, [int]$velocity.JavaMinimum)
+    if ($installedJava -lt $minimumJava) {
+        throw "Java $minimumJava or newer is required by these builds; detected Java $installedJava. Install the required runtime and rerun."
+    }
+} else {
+    Write-Warning "Could not parse java -version output. Verify manually that Java meets both minimum versions."
+}
 $downloadDir = Join-Path $runtime "downloads"
 New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
 $paperDownload = Join-Path $downloadDir "paper.jar"
