@@ -36,7 +36,7 @@ jobs:
       - name: Parse PowerShell scripts
         shell: pwsh
         run: |
-          $scripts = @("scripts/Check-Prerequisites.ps1", "scripts/Start-Manager.ps1", "scripts/Prepare-TestNetwork.ps1")
+          $scripts = @("scripts/Check-Prerequisites.ps1", "scripts/Start-Manager.ps1", "scripts/Prepare-TestNetwork.ps1", "scripts/Start-Network.ps1")
           foreach ($scriptPath in $scripts) {
             $tokens = $null
             $errors = $null
