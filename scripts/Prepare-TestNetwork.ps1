@@ -38,8 +38,16 @@ $paper = Get-LatestPaperJar "paper"
 $velocity = Get-LatestPaperJar "velocity"
 Write-Host "Paper: $($paper.Version) build $($paper.Build), Java $($paper.JavaMinimum)+" -ForegroundColor Green
 Write-Host "Velocity: $($velocity.Version) build $($velocity.Build), Java $($velocity.JavaMinimum)+" -ForegroundColor Green
-$javaOutput = (& java -version 2>&1 | Out-String)
-if ($javaOutput -match 'version "(d+)') {
+$previousErrorActionPreference = $ErrorActionPreference
+try {
+    # java -version writes to stderr; Windows PowerShell can treat that as a terminating
+    # NativeCommandError when ErrorActionPreference is Stop, even though Java runs fine.
+    $ErrorActionPreference = "Continue"
+    $javaOutput = (& java -version 2>&1 | ForEach-Object { "$_" }) -join "`n"
+} finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+}
+if ($javaOutput -match 'version "\s*(\d+)') {
     $installedJava = [int]$Matches[1]
     $minimumJava = [Math]::Max([int]$paper.JavaMinimum, [int]$velocity.JavaMinimum)
     if ($installedJava -lt $minimumJava) {
