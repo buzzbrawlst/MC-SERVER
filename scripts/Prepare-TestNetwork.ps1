@@ -119,6 +119,9 @@ skyblock = "127.0.0.1:25569"
 bedwars = "127.0.0.1:25570"
 duels = "127.0.0.1:25571"
 try = ["lobby"]
+
+# Explicitly override Velocity built-in sample forced hosts (factions/minigames).
+[forced-hosts]
 "@
 Write-Utf8NoBom -Path (Join-Path $proxyDir "velocity.toml") -Content $velocityConfig
 
