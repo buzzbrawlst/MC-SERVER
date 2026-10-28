@@ -187,7 +187,8 @@ def stop(server):
             return {"ok": True, "message": "Not running.", "server": status(server)}
         try:
             if process.stdin:
-                process.stdin.write(b"stop\n")
+                shutdown_command = "shutdown" if server.get("kind") == "velocity" else "stop"
+                process.stdin.write((shutdown_command + "\n").encode("utf-8"))
                 process.stdin.flush()
             process.wait(timeout=25)
         except (subprocess.TimeoutExpired, BrokenPipeError, OSError):
