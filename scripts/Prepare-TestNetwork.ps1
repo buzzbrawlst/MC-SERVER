@@ -1,0 +1,132 @@
+param([switch]$EnableAllModes)
+$ErrorActionPreference = "Stop"
+$repo = (Get-Location).Path
+if (-not (Test-Path (Join-Path $repo "config\network.example.json"))) { throw "Run this script from the MC-SERVER repository root." }
+$runtime = Join-Path $repo "runtime"
+$headers = @{ "User-Agent" = "MC-SERVER-Local-Test-Setup/1.0" }
+
+function Get-LatestPaperJar([string]$Project) {
+    $projectInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project" -Headers $headers
+    $version = $projectInfo.versions[-1]
+    $versionInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project/versions/$version" -Headers $headers
+    $build = $versionInfo.builds[-1]
+    $buildInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project/versions/$version/builds/$build" -Headers $headers
+    $downloadName = $buildInfo.downloads.application.name
+    return @{ Version = $version; Build = $build; Url = "https://api.papermc.io/v2/projects/$Project/versions/$version/builds/$build/downloads/$downloadName" }
+}
+
+Write-Host "MC-SERVER local test-network preparation" -ForegroundColor Cyan
+Write-Host "This downloads official PaperMC builds. It does NOT accept the Minecraft EULA or expose the network publicly." -ForegroundColor Yellow
+if (-not (Get-Command java -ErrorAction SilentlyContinue)) { throw "Java is missing. Install a runtime supported by the selected Paper version, then rerun." }
+java -version
+New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+
+$paper = Get-LatestPaperJar "paper"
+$velocity = Get-LatestPaperJar "velocity"
+Write-Host "Paper: $($paper.Version) build $($paper.Build)" -ForegroundColor Green
+Write-Host "Velocity: $($velocity.Version) build $($velocity.Build)" -ForegroundColor Green
+$downloadDir = Join-Path $runtime "downloads"
+New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
+$paperDownload = Join-Path $downloadDir "paper.jar"
+$velocityDownload = Join-Path $downloadDir "velocity.jar"
+Invoke-WebRequest -Uri $paper.Url -OutFile $paperDownload -Headers $headers
+Invoke-WebRequest -Uri $velocity.Url -OutFile $velocityDownload -Headers $headers
+
+$proxyDir = Join-Path $runtime "proxy"
+New-Item -ItemType Directory -Force -Path $proxyDir | Out-Null
+Copy-Item $velocityDownload (Join-Path $proxyDir "velocity.jar") -Force
+New-Item -ItemType Directory -Force -Path (Join-Path $proxyDir "plugins") | Out-Null
+
+$configPath = Join-Path $repo "config\network.json"
+if (-not (Test-Path $configPath)) { Copy-Item (Join-Path $repo "config\network.example.json") $configPath }
+$config = Get-Content $configPath -Raw | ConvertFrom-Json
+$secretBytes = New-Object byte[] 32
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($secretBytes)
+$rng.Dispose()
+$secret = [Convert]::ToBase64String($secretBytes).TrimEnd('=').Replace('+','-').Replace('/','_')
+Set-Content -Path (Join-Path $proxyDir "forwarding.secret") -Value $secret -NoNewline -Encoding ascii
+
+$velocityConfig = @"
+config-version = "2.7"
+bind = "0.0.0.0:25565"
+motd = "<#72e6b1>MC-SERVER <gray>Local Test Network"
+show-max-players = 100
+online-mode = true
+force-key-authentication = true
+player-info-forwarding-mode = "modern"
+forwarding-secret-file = "forwarding.secret"
+announce-forge = false
+kick-existing-players = false
+ping-passthrough = "DISABLED"
+enable-player-address-logging = false
+[servers]
+lobby = "127.0.0.1:25566"
+survival = "127.0.0.1:25567"
+lifesteal = "127.0.0.1:25568"
+skyblock = "127.0.0.1:25569"
+bedwars = "127.0.0.1:25570"
+duels = "127.0.0.1:25571"
+try = ["lobby"]
+"@
+Set-Content -Path (Join-Path $proxyDir "velocity.toml") -Value $velocityConfig -Encoding utf8
+
+foreach ($server in $config.servers) {
+    if ($server.kind -ne "paper") { continue }
+    $folder = Join-Path $repo $server.directory
+    New-Item -ItemType Directory -Force -Path $folder | Out-Null
+    Copy-Item $paperDownload (Join-Path $folder "paper.jar") -Force
+    $properties = @"
+server-ip=127.0.0.1
+server-port=$($server.port)
+motd=MC-SERVER $($server.display_name)
+max-players=100
+online-mode=false
+enforce-secure-profile=true
+enable-rcon=false
+enable-query=false
+"@
+    Set-Content -Path (Join-Path $folder "server.properties") -Value $properties -Encoding utf8
+    $configFolder = Join-Path $folder "config"
+    New-Item -ItemType Directory -Force -Path $configFolder | Out-Null
+    $globalConfig = @"
+proxies:
+  velocity:
+    enabled: true
+    online-mode: true
+    secret: "$secret"
+"@
+    Set-Content -Path (Join-Path $configFolder "paper-global.yml") -Value $globalConfig -Encoding utf8
+    if (-not (Test-Path (Join-Path $folder "eula.txt"))) {
+        Set-Content -Path (Join-Path $folder "eula.txt") -Value "eula=false" -Encoding ascii
+    }
+    $server.enabled = [bool]($EnableAllModes -or $server.id -in @("proxy","lobby","survival"))
+}
+
+# Build and install the starter plugin when Gradle is available; the network still runs without it.
+$gradle = Get-Command gradle -ErrorAction SilentlyContinue
+if ($gradle) {
+    Push-Location (Join-Path $repo "custom-plugins")
+    try {
+        & gradle build
+        if ($LASTEXITCODE -ne 0) { throw "Custom plugin build failed. Check the Gradle output above." }
+    } finally { Pop-Location }
+    $pluginJar = Join-Path $repo "custom-plugins\network-core\build\libs\network-core-0.1.0.jar"
+    if (Test-Path $pluginJar) {
+        foreach ($server in $config.servers | Where-Object { $_.kind -eq "paper" }) {
+            $pluginsDir = Join-Path (Join-Path $repo $server.directory) "plugins"
+            New-Item -ItemType Directory -Force -Path $pluginsDir | Out-Null
+            Copy-Item $pluginJar $pluginsDir -Force
+        }
+        Write-Host "Built and installed MC-SERVER Network Core." -ForegroundColor Green
+    }
+} else {
+    Write-Host "Gradle not installed; skipping custom plugin build. Install Gradle and rerun to include /network and /spawn." -ForegroundColor Yellow
+}
+
+$config | ConvertTo-Json -Depth 20 | Set-Content -Path $configPath -Encoding utf8
+Write-Host ""
+Write-Host "Prepared server jars and local-only forwarding configuration." -ForegroundColor Green
+Write-Host "Review each runtime\<mode>\eula.txt and change eula=false to eula=true ONLY if you agree to the Minecraft EULA." -ForegroundColor Yellow
+Write-Host "Default enabled instances: proxy, lobby, survival. Use -EnableAllModes only if your PC has enough RAM." -ForegroundColor Yellow
+Write-Host "Run scripts\Start-Manager.ps1 after reviewing EULAs. Join Java at localhost:25565." -ForegroundColor Cyan

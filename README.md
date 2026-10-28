@@ -1,15 +1,23 @@
 # MC-SERVER
 
-Windows-first Minecraft network foundation: Velocity proxy, private Paper backends, local manager UI, PowerShell helpers, and a custom plugin scaffold. Server jars, worlds, paid plugins, and secrets are not included.
+Windows-first local Minecraft network starter for Java Edition. Velocity is the entry point; Paper backends are configured for Lobby, flagship Enhanced SMP Survival, Lifesteal, Skyblock, BedWars and Duels.
 
-## Quick start
-1. Install Java, Python 3.11+, and Git.
-2. Run `powershell -ExecutionPolicy Bypass -File .\\scripts\\Check-Prerequisites.ps1`.
-3. Run `py -3.11 -m venv .venv` then `.\\.venv\\Scripts\\python -m pip install -r manager\\requirements.txt`.
-4. Copy `config\\network.example.json` to `config\\network.json`; review it before enabling instances.
-5. Run `powershell -ExecutionPolicy Bypass -File .\\scripts\\Start-Manager.ps1`.
-6. Open http://127.0.0.1:8765.
+## Prepare a local test network
+1. Install Git, Python 3.11+, and a Java runtime supported by the current stable Paper build.
+2. From the repository root, run \`powershell -ExecutionPolicy Bypass -File .\scripts\Check-Prerequisites.ps1\`.
+3. Run \`powershell -ExecutionPolicy Bypass -File .\scripts\Prepare-TestNetwork.ps1\`. Add \`-EnableAllModes\` only if your PC has enough free RAM.
+4. Read each generated \`runtime\<mode>\eula.txt\`; change \`eula=false\` to \`eula=true\` only if you agree to the Minecraft EULA.
+5. Run \`powershell -ExecutionPolicy Bypass -File .\scripts\Start-Manager.ps1\`.
+6. In the dashboard, start Lobby and Survival, wait until their logs say startup is complete, then start Velocity. Join Java Edition at \`localhost:25565\`.
 
-Download jars/plugins only from official sources. Expose only Velocity port 25565; keep Paper backends and the unauthenticated manager on localhost. Configure modern forwarding and matching backend settings before public launch. Never commit secrets, worlds, player data, logs, or EULAs.
+The preparation script downloads current stable Paper and Velocity builds from PaperMC's official API, generates a random forwarding secret, and binds Paper backends to loopback. It does not accept EULAs. If Gradle is installed, it also builds and installs the starter custom plugin. Keep the manager bound to \`127.0.0.1\`; it has no authentication.
 
-Planned modes: Lobby, flagship Survival SMP, Lifesteal, Skyblock, BedWars, Duels. All instances are disabled by default. This is a starter foundation, not production-ready; see docs/ROADMAP.md and docs/OPERATIONS.md.
+## Development and checks
+- Manager: FastAPI + local web dashboard.
+- Custom plugin: Java/Paper Gradle project under \`custom-plugins/network-core\`.
+- Tests: \`python -m pip install -r manager/requirements.txt -r requirements-dev.txt\`, then \`python -m pytest -q\`.
+- GitHub Actions checks Python tests and builds the plugin.
+- See [local test runbook](docs/LOCAL-TESTING.md), [operations](docs/OPERATIONS.md), and [roadmap](docs/ROADMAP.md).
+
+## Scope
+This is a local Java smoke-test foundation, not a finished public network. Full Bedrock/Geyser setup, production gameplay for every mode, shared persistence, backups, performance profiling and production security review remain roadmap items. Server jars, worlds, player data, EULAs, secrets and local config are not committed.

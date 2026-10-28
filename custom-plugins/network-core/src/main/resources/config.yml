@@ -1,4 +1,4 @@
 messages:
-  prefix: "&a[MC-SERVER] &7"
+  welcome: "&aWelcome to &fMC-SERVER&a! Use &f/network&a for help."
 features:
-  welcome-message: false
+  welcome-message: true
