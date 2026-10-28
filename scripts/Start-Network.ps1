@@ -76,7 +76,7 @@ if ($notAccepted.Count -gt 0) {
 if (-not (Test-Manager)) {
     Write-Host "Starting local management service..." -ForegroundColor Cyan
     $managerScript = Join-Path $repo "scripts\Start-Manager.ps1"
-    $managerArgs = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File \`"$managerScript\`""
+    $managerArgs = "-NoLogo -NoProfile -ExecutionPolicy Bypass -File `"$managerScript`""
     Start-Process -FilePath "powershell.exe" -ArgumentList $managerArgs -WorkingDirectory $repo -WindowStyle Minimized
     $deadline = (Get-Date).AddSeconds(90)
     while ((Get-Date) -lt $deadline -and -not (Test-Manager)) { Start-Sleep -Seconds 2 }
