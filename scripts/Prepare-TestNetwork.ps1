@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $repo = (Get-Location).Path
 if (-not (Test-Path (Join-Path $repo "config\network.example.json"))) { throw "Run this script from the MC-SERVER repository root." }
 $runtime = Join-Path $repo "runtime"
-$headers = @{ "User-Agent" = "MC-SERVER-Local-Test-Setup/1.0" }
+$headers = @{ "User-Agent" = "MC-SERVER-Local-Test-Setup/0.1 (https://github.com/buzzbrawlst/MC-SERVER)" }
 
 function Write-Utf8NoBom([string]$Path, [string]$Content) {
     $encoding = New-Object System.Text.UTF8Encoding -ArgumentList $false
@@ -11,13 +11,19 @@ function Write-Utf8NoBom([string]$Path, [string]$Content) {
 }
 
 function Get-LatestPaperJar([string]$Project) {
-    $projectInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project" -Headers $headers
-    $version = $projectInfo.versions[-1]
-    $versionInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project/versions/$version" -Headers $headers
-    $build = $versionInfo.builds[-1]
-    $buildInfo = Invoke-RestMethod -Uri "https://api.papermc.io/v2/projects/$Project/versions/$version/builds/$build" -Headers $headers
-    $downloadName = $buildInfo.downloads.application.name
-    return @{ Version = $version; Build = $build; Url = "https://api.papermc.io/v2/projects/$Project/versions/$version/builds/$build/downloads/$downloadName" }
+    $channel = if ($Project -eq "velocity") { "RECOMMENDED" } else { "STABLE" }
+    $projectInfo = Invoke-RestMethod -Uri "https://fill.papermc.io/v3/projects/$Project" -Headers $headers
+    foreach ($group in $projectInfo.versions.PSObject.Properties) {
+        foreach ($version in $group.Value) {
+            $builds = Invoke-RestMethod -Uri "https://fill.papermc.io/v3/projects/$Project/versions/$version/builds" -Headers $headers
+            $build = $builds | Where-Object { $_.channel -eq $channel } | Select-Object -First 1
+            if (-not $build) { continue }
+            $download = $build.downloads.PSObject.Properties["server:default"].Value
+            if (-not $download -or -not $download.url -or -not $download.checksums.sha256) { continue }
+            return @{ Version = $version; Build = $build.id; Url = $download.url; Sha256 = $download.checksums.sha256 }
+        }
+    }
+    throw "No $channel build found for $Project in the PaperMC Fill v3 API."
 }
 
 Write-Host "MC-SERVER local test-network preparation" -ForegroundColor Cyan
@@ -36,6 +42,11 @@ $paperDownload = Join-Path $downloadDir "paper.jar"
 $velocityDownload = Join-Path $downloadDir "velocity.jar"
 Invoke-WebRequest -Uri $paper.Url -OutFile $paperDownload -Headers $headers
 Invoke-WebRequest -Uri $velocity.Url -OutFile $velocityDownload -Headers $headers
+$paperHash = (Get-FileHash -Path $paperDownload -Algorithm SHA256).Hash.ToLowerInvariant()
+$velocityHash = (Get-FileHash -Path $velocityDownload -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($paperHash -ne $paper.Sha256) { Remove-Item $paperDownload -Force; throw "Paper SHA-256 verification failed; deleted the downloaded file." }
+if ($velocityHash -ne $velocity.Sha256) { Remove-Item $velocityDownload -Force; throw "Velocity SHA-256 verification failed; deleted the downloaded file." }
+Write-Host "Verified Paper and Velocity SHA-256 checksums." -ForegroundColor Green
 
 $proxyDir = Join-Path $runtime "proxy"
 New-Item -ItemType Directory -Force -Path $proxyDir | Out-Null
